@@ -3,6 +3,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, ContextTyp
 from telegram.helpers import escape_markdown
 
 import os
+import re
+
 from tinydb import TinyDB, Query
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,40 +36,49 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   )
 
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+  query = update.message.text or ""
+  if query.startswith("/"):
+    query = query[1:]
+  else:
+    query = update.message.text
+
   recent_stops = sessions.search(
     Session.user_id == update.effective_user.id
   )[0]["recent_stops"] if sessions.contains(
     Session.user_id == update.effective_user.id
   ) else []
   
-  monitor = get_stop_monitor(update.message.text)
+  monitor = get_stop_monitor(query)
   if monitor:
-    if update.message.text not in recent_stops:
+    if query not in recent_stops:
       sessions.upsert({
         "user_id": update.effective_user.id,
-        "recent_stops": recent_stops[:min(3, len(recent_stops))] + [update.message.text]
+        "recent_stops": [query] + recent_stops[:-1]
       }, Session.user_id == update.effective_user.id)
     return await update.message.reply_markdown_v2(
       format_stop_monitor(None, monitor),
       reply_markup=get_recent_stops_markup(update)
     )
 
-  results = get_stops_by_keyword(update.message.text)
+  results = get_stops_by_keyword(query)
   if results:
     if len(results) == 1:
       if results[0]["id"] not in recent_stops:
         sessions.upsert({
           "user_id": update.effective_user.id,
-          "recent_stops": recent_stops[:min(3, len(recent_stops))] + [results[0]["id"]]
+          "recent_stops": [results[0]["id"]] + recent_stops[:-1]
         }, Session.user_id == update.effective_user.id)
       return await update.message.reply_markdown_v2(
         "Nessun passaggio trovato per questa fermata\.",
         reply_markup=get_recent_stops_markup(update)
       )
+    stops_msg = "Fermate trovate:\n\n" + "\n".join(
+      [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" for result in results]
+    )
+    if len(stops_msg) > 4096:
+      return await update.message.reply_text("Troppi risultati trovati. Restringi la ricerca inserendo più termini.")
     return await update.message.reply_markdown_v2(
-      "Fermate trovate:\n\n" + "\n".join(
-        [f"\- \[{escape_markdown(result['id'], version=2)}\] {escape_markdown(result['text'], version=2)}" for result in results]
-      ),
+      stops_msg,
       reply_markup=get_recent_stops_markup(update)
     )
   return await update.message.reply_text("Nessuna fermata trovata.", reply_markup=get_recent_stops_markup(update))

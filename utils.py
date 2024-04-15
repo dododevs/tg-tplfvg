@@ -18,5 +18,5 @@ def format_stop_monitor(stop: str, monitor: list[RTResult]) -> str:
   }
   return f"Prossimi passaggi \(in tempo reale se segnalato con ✱\):\n\n" + "\n".join([
     f"*Linea {r.line_code}* ⇒ {escape_markdown(r.destination, version=2)}\n" + \
-      ("\(✱\)  " if r.vehicle else "") + f"{r.arrival_time.strftime('%H:%m') if type(r.arrival_time) == datetime else r.arrival_time}\n" for r in monitor
-  ])
+      ("\(✱\)  " if r.vehicle else "") + f"{r.arrival_time.strftime('%H:%m') if type(r.arrival_time) == datetime else r.arrival_time}" + ("\n_succ\._ " if r.next_passes else "") + escape_markdown(r.next_passes, version=2) + "\n" for r in monitor
+  ]) + f"\n\n_Aggiornato alle {datetime.now().strftime('%H:%M')} del {datetime.now().strftime('%d/%m/%Y')}_\."
