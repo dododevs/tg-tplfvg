@@ -86,7 +86,8 @@ def get_stop_monitor(stop_code: str):
     vehicle=result["Vehicle"],
     trip=result["Race"],
     latitude=result["Latitude"],
-    longitude=result["Longitude"]
+    longitude=result["Longitude"],
+    notes=result["Note"]
   ) for result in f]
 
 # print(build_square(45.651646, 13.7693294, 1.0))

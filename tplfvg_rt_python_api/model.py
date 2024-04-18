@@ -16,3 +16,4 @@ class RTResult:
   trip: str
   latitude: float
   longitude: float
+  notes: str

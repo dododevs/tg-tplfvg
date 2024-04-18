@@ -47,7 +47,7 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   )[0]["recent_stops"] if sessions.contains(
     Session.user_id == update.effective_user.id
   ) else []
-  
+
   monitor = get_stop_monitor(query)
   if monitor:
     if query not in recent_stops:
