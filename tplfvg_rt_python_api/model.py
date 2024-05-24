@@ -17,3 +17,14 @@ class RTResult:
   latitude: float
   longitude: float
   notes: str
+
+@dataclass
+class StopInfo:
+  address: str
+  stop_code: str
+  latitude: float
+  longitude: float
+  is_urban: bool
+  is_extraurban: bool
+  is_maritime: bool
+  is_station: bool

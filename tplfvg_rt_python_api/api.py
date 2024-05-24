@@ -2,7 +2,7 @@ import geojson
 import datetime
 import json
 
-from .model import RTResult
+from .model import RTResult, StopInfo
 from .utils import build_square, make_api_request, make_rt_api_request
 
 
@@ -11,7 +11,7 @@ def get_stops_by_location(lat: float, lng: float):
   Construct a polygon around the (latitude, longitude) point and request
   stops inside the generated polygon.
   """
-  square = build_square(lat, lng, 0.5)
+  square = build_square(lat, lng, 0.1)
   
   # Invert latitude and longitude coordinates when building 
   # the Polygon object, for some reason
@@ -36,6 +36,31 @@ def get_stops_by_keyword(query: str):
     return None
   return json.loads(f)["results"]
 
+
+def get_stop_info(stop_code: str):
+  """
+    Query RT API for information about the stop with the given stop_code.
+  """
+
+  f = make_rt_api_request(
+    "polemonitor/info",
+    method="GET",
+    params={
+      "StopCode": stop_code
+    }
+  )
+  if not f or f == "null":
+    return None
+  return StopInfo(
+    address=f["Address"],
+    stop_code=f["StopCode"],
+    latitude=f["Latitude"],
+    longitude=f["Longitude"],
+    is_urban=f["IsUrban"],
+    is_extraurban=f["IsExtraUrban"],
+    is_maritime=f["IsMaritime"],
+    is_station=f["IsStation"]
+  )
 
 def get_stop_monitor(stop_code: str):
   """
