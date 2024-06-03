@@ -1,10 +1,12 @@
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes
 from telegram.helpers import escape_markdown
+from telegram.constants import MessageLimit
 
 import os
 import re
 import json
+import random
 
 from more_itertools import chunked
 from tinydb import TinyDB, Query
@@ -12,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from tplfvg_rt_python_api.api import get_stops_by_keyword, get_stop_monitor, get_stops_by_location, get_stop_info
-from utils import format_stop_monitor, format_lines_for_stop
+from utils import format_stop_monitor, format_lines_for_stop, split_entities_if_needed
 
 db = TinyDB('storage.json')
 sessions = db.table("sessions")
@@ -22,7 +24,8 @@ def get_recent_stops_markup(update: Update):
   return ReplyKeyboardMarkup(
     keyboard=list(chunked(sessions.search(
       Session.user_id == update.effective_user.id
-    )[0]["recent_stops"], 2))
+    )[0]["recent_stops"], 2)),
+    resize_keyboard=True
   ) if sessions.contains(
     Session.user_id == update.effective_user.id
   ) else None
@@ -84,6 +87,7 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
           "recent_stops": [results[0]["id"]] + recent_stops[:-1]
         }, Session.user_id == update.effective_user.id)
       return await get_monitor_response(results[0]["text"], results[0]["id"])
+    # random.shuffle(results)
     stops_msg_shortest = "Fermate trovate:\n\n" + "\n".join(
       [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" for result in results]
     )
@@ -93,22 +97,20 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     stops_msg_long = "Fermate trovate:\n\n" + "\n".join(
       [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" + format_lines_for_stop(result['id'], True) for result in results]
     )
-    print(len(stops_msg_shortest))
-    print(len(stops_msg_short))
-    print(len(stops_msg_long))
-    if len(stops_msg_long) <= 4096:
-      return await update.message.reply_markdown_v2(
-        stops_msg_long
-      )
-    if len(stops_msg_short) <= 4096:
-      return await update.message.reply_markdown_v2(
-        stops_msg_short
-      )
-    if len(stops_msg_shortest) <= 4096:
-      return await update.message.reply_markdown_v2(
-        stops_msg_shortest
-      )
+
+    msgs = []
+    if len(stops_msg_long) <= MessageLimit.MAX_TEXT_LENGTH:
+      msgs = split_entities_if_needed(stops_msg_long)
+    elif len(stops_msg_short) <= MessageLimit.MAX_TEXT_LENGTH:
+      msgs = split_entities_if_needed(stops_msg_short)
+    elif len(stops_msg_shortest) <= MessageLimit.MAX_TEXT_LENGTH:
+      msgs = split_entities_if_needed(stops_msg_shortest)
+    if msgs:
+      return [await update.message.reply_markdown_v2(
+        msg, reply_markup=ReplyKeyboardRemove()
+      ) for msg in msgs]
     return await update.message.reply_text("Troppi risultati trovati. Restringi la ricerca inserendo più termini.")
+
   return await update.message.reply_text("Nessuna fermata trovata.", reply_markup=get_recent_stops_markup(update))
 
 app = Application.builder().token(os.environ["TELEGRAM_BOT_API_KEY"]).build()

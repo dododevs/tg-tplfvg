@@ -11,7 +11,7 @@ def get_stops_by_location(lat: float, lng: float):
   Construct a polygon around the (latitude, longitude) point and request
   stops inside the generated polygon.
   """
-  square = build_square(lat, lng, 0.1)
+  square = build_square(lat, lng, 0.4)
   
   # Invert latitude and longitude coordinates when building 
   # the Polygon object, for some reason
@@ -22,7 +22,10 @@ def get_stops_by_location(lat: float, lng: float):
   ))
   if not f:
     return None
-  return [feature.properties for feature in geojson.loads(f).features]
+  return [{
+    "id": feature.properties["code"],
+    "text": feature.properties["name"]
+  } for feature in geojson.loads(f).features]
 
 
 def get_stops_by_keyword(query: str):
@@ -39,7 +42,7 @@ def get_stops_by_keyword(query: str):
 
 def get_stop_info(stop_code: str):
   """
-    Query RT API for information about the stop with the given stop_code.
+  Query RT API for information about the stop with the given stop_code.
   """
 
   f = make_rt_api_request(
