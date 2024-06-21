@@ -14,43 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataclasses import dataclass
-from datetime import datetime
+from tinydb import Query
 
-@dataclass
-class RTResult:
-  line: str
-  departure_time: datetime
-  destination: str
-  arrival_time: datetime | str
-  next_passes: str
-  direction: str
-  line_code: str
-  line_type: str
-  origin: str
-  vehicle: str
-  trip: str
-  latitude: float
-  longitude: float
-  notes: str
-  is_destination: bool
-
-@dataclass
-class StopInfo:
-  address: str
-  stop_code: str
-  latitude: float
-  longitude: float
-  is_urban: bool
-  is_extraurban: bool
-  is_maritime: bool
-  is_station: bool
-
-@dataclass
-class RouteStop:
-  seq: int
-  line_seq: int
-  stop_code: str
-  stop_description: str
-  stop_type: str
-  time: int
+Session = Query()
+all_zones = {
+  "G": "Gorizia",
+  "M": "Monfalcone",
+  "P": "Pordenone",
+  "T": "Trieste",
+  "U": "Udine"
+}

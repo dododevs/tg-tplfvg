@@ -1,8 +1,24 @@
+# tg-tplfvg: Python Telegram Bot for TPLFVG's public transit services 
+# Copyright (C) 2024 Andrea Esposito <aespositox@gmail.com>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import geojson
 import datetime
 import json
 
-from .model import RTResult, StopInfo
+from .model import RTResult, StopInfo, RouteStop
 from .utils import build_square, make_api_request, make_rt_api_request
 
 
@@ -65,7 +81,32 @@ def get_stop_info(stop_code: str):
     is_station=f["IsStation"]
   )
 
-def get_stop_monitor(stop_code: str):
+def get_line_route(line_code: str, trip_direction: str, trip_id: str) -> list[RouteStop]:
+  """
+  Query RT API for route information for the given trip of the given line. 
+  """
+
+  f = make_rt_api_request(
+    "polemonitor/getlinetimetable",
+    method="GET",
+    params={
+      "Line": line_code,
+      "Direction": trip_direction,
+      "Race": trip_id
+    }
+  )
+  if not f:
+    return None
+  return [RouteStop(
+    seq=stop["SequenceNumber"],
+    line_seq=stop["LineSequenceNumber"],
+    stop_code=stop["StopCode"],
+    stop_description=stop["StopDescription"],
+    stop_type=stop["StopType"],
+    time=stop["Time"]
+  ) for stop in f]
+
+def get_stop_monitor(stop_code: str) -> list[RTResult]:
   """
   Query RT API for results that would be shown on a pole monitor, i.e. expected
   and scheduled bus trips calling at the given stop. The returned results can
@@ -115,7 +156,8 @@ def get_stop_monitor(stop_code: str):
     trip=result["Race"],
     latitude=result["Latitude"],
     longitude=result["Longitude"],
-    notes=result["Note"]
+    notes=result["Note"],
+    is_destination=result["IsDestination"]
   ) for result in f]
 
 # print(build_square(45.651646, 13.7693294, 1.0))
