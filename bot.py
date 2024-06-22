@@ -153,6 +153,11 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
   else:
     results = get_stops_by_keyword(query)
 
+  # Filter stops by zone, if requested by the user
+  zones = session.get("zones") if session else []
+  if zones:
+    results = filter_stops_by_zone(results, zones)
+
   if results:
     if len(results) == 1:
       if results[0]["id"] not in recent_stops_ids:
@@ -161,11 +166,6 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
           "recent_stops": [f"/{query} {stop_name}"] + (recent_stops[:-1] if len(recent_stops) > 7 else recent_stops)
         }, Session.user_id == update.effective_user.id)
       return await get_monitor_response(results[0]["text"], results[0]["id"])
-    
-    # Filter stops by zone, if requested by the user
-    zones = session.get("zones") if session else []
-    if zones:
-      results = filter_stops_by_zone(results, zones)
 
     stops_msg_shortest = "Fermate trovate:\n\n" + "\n".join(
       [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" for result in results]
