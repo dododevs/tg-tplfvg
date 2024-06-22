@@ -87,7 +87,8 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Session.user_id == update.effective_user.id
   ) else None
 
-  if session["status"] == "naming_fav":
+  naming_fav = session.get("status") == "naming_fav" if session else False
+  if naming_fav:
     if not re.search(r"\w{2,}", update.message.text):
       return await update.message.reply_text(
         "Usa almeno due caratteri alfanumerici come nome per una fermata preferita."
