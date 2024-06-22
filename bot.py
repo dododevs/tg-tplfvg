@@ -163,7 +163,7 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
       if results[0]["id"] not in recent_stops_ids:
         sessions.upsert({
           "user_id": update.effective_user.id,
-          "recent_stops": [f"/{query} {stop_name}"] + (recent_stops[:-1] if len(recent_stops) > 7 else recent_stops)
+          "recent_stops": [f"/{query} {results[0]['text']}"] + (recent_stops[:-1] if len(recent_stops) > 7 else recent_stops)
         }, Session.user_id == update.effective_user.id)
       return await get_monitor_response(results[0]["text"], results[0]["id"])
 
