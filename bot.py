@@ -171,10 +171,10 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
       [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" for result in results]
     )
     stops_msg_short = "Fermate trovate:\n\n" + "\n".join(
-      [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" + format_lines_for_stop(result['id'], False) for result in results]
+      [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" + format_lines_for_stop(result['id'], result['text'], False) for result in results]
     )
     stops_msg_long = "Fermate trovate:\n\n" + "\n".join(
-      [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" + format_lines_for_stop(result['id'], True) for result in results]
+      [f"/{escape_markdown(result['id'], version=2)} {escape_markdown(result['text'], version=2)}" + format_lines_for_stop(result['id'], result['text'], True) for result in results]
     )
 
     msgs = []

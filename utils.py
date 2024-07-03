@@ -58,14 +58,14 @@ def format_stop_monitor(stop: str, query: str, monitor: list[RTResult]) -> str:
       ("\\(✱\\)  " if r.vehicle else "") + f"{r.arrival_time.strftime('%H:%m') if type(r.arrival_time) == datetime else r.arrival_time}" + ("\n_succ\\._ " if r.next_passes else "") + escape_markdown(r.next_passes, version=2) + "\n" for r in monitor
   ]) + f"\n\n_Aggiornato alle {datetime.now().strftime('%H:%M')} del {datetime.now().strftime('%d/%m/%Y')}_\\."
 
-def format_lines_for_stop(stop_code, long=False):
+def format_lines_for_stop(stop_code, stop_name, long=False):
   if not lines_by_stop:
     return ""
   if not (lines := lines_by_stop.get(stop_code)):
     return "\n_Nessuna linea trovata_\n"
   lines = lines["lines"]
   return "\n" + ("\n".join([
-    f"*{escape_markdown(line['guideline_public_code'], version=2)}* • {escape_markdown(line['public_description'], version=2)}" for line in lines
+    f"*{escape_markdown(line['guideline_public_code'], version=2)}* ⇒ {escape_markdown(line['public_description'].split(" - ")[-1] if line['public_description'].split(" - ")[-1] != stop_name else line['public_description'].split(" - ")[0], version=2)}" for line in lines
   ]) if long else "_Linee:_ " + " \\- ".join([
     f"*{escape_markdown(line['guideline_public_code'], version=2)}*" for line in lines
   ])) + "\n"
