@@ -48,12 +48,16 @@ def get_stops_by_keyword(query: str):
   """
 
   """
-  f = make_api_request("keyword", data={
-    "query": query
+  f = make_api_request("search/autocomplete", data={
+    "q": query,
+		"limit": 100
   })
   if not f:
     return None
-  return json.loads(f)["results"]
+  return [{
+		"id": s["code"],
+		"text": s["label"]
+	} for s in json.loads(f)[1:] if s["type"] == "stop"]
 
 
 def get_stop_info(stop_code: str):
