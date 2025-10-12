@@ -48,10 +48,10 @@ def get_stops_by_keyword(query: str):
   """
 
   """
-  f = make_api_request("search/autocomplete", data={
+  f = make_api_request("search/autocomplete", params={
     "q": query,
 		"limit": 100
-  })
+  }, method="GET")
   if not f:
     return None
   return [{

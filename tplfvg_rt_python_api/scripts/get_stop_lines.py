@@ -22,6 +22,8 @@ import json
 import time
 import random
 import os
+import string
+from bs4 import BeautifulSoup as BS
 from concurrent.futures import ThreadPoolExecutor
 
 DEFAULT_HEADERS = {
@@ -38,34 +40,48 @@ TMP_STOPS_DIR = f"{LOCAL_FILES_DIR}/stops"
 def get_all_stops():
 	try:
 		f = requests.get(
-			"https://tplfvg.it/services/bus-stops/all/",
+			"https://tplfvg.it/services/geojson/points/",
 			headers=DEFAULT_HEADERS
 		).text
 	except Exception as e:
 		print(f"Could not get all stops: {e!r}")
 		sys.exit(1)
-	return geojson.loads(f).features
+	return [s for s in geojson.loads(f).features if s["properties"]["__type"] == "stop"]
 
-def get_lines_calling_at_stop(stop_code):
+def get_lines_calling_at_stop(stop_code, stop_name):
 	try:
 		f = requests.get(
-			f"https://tplfvg.it/it/il-viaggio/costruisci-il-tuo-orario/?bus_stop={stop_code}&search-lines-by-bus-stops",
-			headers=DEFAULT_HEADERS
+			"https://tplfvg.it/it/orari/mappa",
+			headers=DEFAULT_HEADERS,
+			params={
+				"lat": "",
+				"lng": "",
+				"tipo": "stop",
+				"valore": stop_code,
+				"query": stop_name
+			}
 		).text
 	except Exception as e:
 		print(f"Could not get lines for stop {stop_code}: {e!r}")
 		sys.exit(1)
-	
+
 	lines = []
-	panels = re.findall(r"<script>\s*.*data\((\{.*\})\).*\s*</script>", f)
-	for panel in panels:
-		lines.append(json.loads(panel))
+	soup = BS(f, 'html.parser')
+	line_rows = soup.find_all(attrs={"data-linea-code": True})
+	for r in line_rows:
+		line_code = r.get("data-linea-code")
+		lines.append({
+			"guideline_code": line_code,
+			"guideline_public_code": r.text.split("|")[0].strip(),
+			"public_description": r.text.split("|")[1].split("[")[0].strip(),
+			"zone_group": line_code[0] if line_code[0] in string.ascii_uppercase else ""
+		})
 	return lines
 
-def get_and_save_stop_lines(stop_code, output):
+def get_and_save_stop_lines(stop_code, stop_name, output):
 	time.sleep(random.random())
 	print(f"Getting lines for stop {stop_code}...")
-	lines = get_lines_calling_at_stop(stop_code)
+	lines = get_lines_calling_at_stop(stop_code, stop_name)
 	with open(output, "w") as f:
 		f.write(json.dumps(lines))
 
@@ -83,11 +99,12 @@ if __name__ == "__main__":
 
 	stops = get_all_stops()
 	print(f"Got {len(stops)} stops. Spawning threads to retrieve lines calling at stops...")
-	
+
 	with ThreadPoolExecutor(max_workers=16) as executor:
 		for stop in stops:
 			stop_code = stop.properties["code"]
-			executor.submit(get_and_save_stop_lines, stop_code, f"{TMP_STOPS_DIR}/{stop_code}.json")
+			stop_name = stop.properties["name"]
+			executor.submit(get_and_save_stop_lines, stop_code, stop_name, f"{TMP_STOPS_DIR}/{stop_code}.json")
 	print(f"Successfully retrieved lines for {len(stops)} stops. Merging...")
 
 	lines_by_stop = {}
@@ -97,7 +114,7 @@ if __name__ == "__main__":
 			lines = json.loads(f.read())
 		lines_by_stop[stop.replace(".json", "")] = {
 			"lines": lines,
-			"zones": list(set([line["zone_group"] for line in lines]))
+			"zones": list(set([line["zone_group"] for line in lines]) - set(""))
 		}
 	
 	print(f"Saving to {outfile}")

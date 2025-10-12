@@ -17,7 +17,8 @@
 import math
 import requests
 
-API_URL = "https://tplfvg.it/services/bus-stops/"
+# API_URL = "https://tplfvg.it/services/bus-stops/"
+API_URL = "https://tplfvg.it/services/"
 RT_API_URL = "https://realtime.tplfvg.it/API/v1.0/"
 
 def get_destination_point(lat, lon, bearing, distance):
@@ -55,7 +56,7 @@ def build_square(lat, lon, side_length):
 
   return square_points
 
-def make_api_request(endpoint, headers={}, method="POST", data=None):
+def make_api_request(endpoint, headers={}, params={}, method="POST", data=None):
   """
   Send request to the TPL FVG bus stop service API.
 
@@ -78,7 +79,8 @@ def make_api_request(endpoint, headers={}, method="POST", data=None):
         "X-Requested-With": "XMLHttpRequest",
         **headers
       },
-      data=data
+      data=data,
+			params=params
     ).text
   except Exception as e:
     print(e)
